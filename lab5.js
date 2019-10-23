@@ -21,30 +21,6 @@ function main() {
         return;
     }
 
-    let testCube = new Cube(gl, "test", null, [0.2, 0.2, 0.2], [0.6, 0.6, 0.6], [0.3, 0.3, 0.3], 11, 1.0);
-    testCube.scale(vec3.fromValues(2.0, 2.0, 2.0));
-    testCube.vertShader = 
-    `#version 300 es
-    //in vec3 aPosition;
-
-    void main() {
-        // Postion of the fragment in world space
-        //gl_Position = vec4(aPosition, 1.0);
-    }
-    `;
-    testCube.fragShader = 
-    `#version 300 es
-    precision highp float;
-
-    out vec4 fragColor;
-
-    void main() {
-        fragColor = vec4(0.5, 0.25, 0.25, 1.0);
-    }
-    `;
-
-    testCube.lightingShader();
-
     const fileUploadButton = document.querySelector("#fileUploadButton");
     fileUploadButton.addEventListener("click", () => {
         console.log("Submitting file...");

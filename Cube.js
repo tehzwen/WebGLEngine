@@ -88,7 +88,6 @@ class Cube {
                 -1.0, 0.0, 0.0
             ],
             buffers: null,
-            centroid: calculateCentroid(this.vertices),
             modelMatrix: mat4.create(),
             position: vec3.fromValues(0.0, 0.0, 0.0),
             rotation: mat4.create(),
@@ -104,27 +103,56 @@ class Cube {
     }
 
     lightingShader() {
-        initShaderProgram(this.gl, this.fragShader, this.vertShader);
+        const shaderProgram = initShaderProgram(this.gl, this.vertShader, this.fragShader);
+        // Collect all the info needed to use the shader program.
+        const programInfo = {
+            // The actual shader program
+            program: shaderProgram,
+            // The attribute locations. WebGL will use there to hook up the buffers to the shader program.
+            // NOTE: it may be wise to check if these calls fail by seeing that the returned location is not -1.
+            attribLocations: {
+                position: this.gl.getAttribLocation(shaderProgram, 'aPosition'),
+            },
+            uniformLocations: {
+            },
+        };
+
+        console.log(programInfo);
+
+        if (programInfo.attribLocations.position === -1) {
+            printError('Shader Location Error', 'One or more of the uniform and attribute variables in the shaders could not be located');
+        }
+
+        this.programInfo = programInfo;
+
     }
 
     initBuffers() {
         //create vertices, normal and indicies arrays
-        const positions = new Float32Array(this.vertices.flat());
-        const normals = new Float32Array(this.normals.flat());
-        const indices = new Uint16Array(this.triangles);
-        
-        var vertexArrayObject = gl.createVertexArray();
+        const positions = new Float32Array(this.model.vertices.flat());
+        const normals = new Float32Array(this.model.normals.flat());
+        const indices = new Uint16Array(this.model.triangles);
 
-        //gl.bindVertexArray(vertexArrayObject);
+        var vertexArrayObject = this.gl.createVertexArray();
+
+        this.gl.bindVertexArray(vertexArrayObject);
+        console.log(positions);
 
         this.buffers = {
             vao: vertexArrayObject,
             attributes: {
-                //position: initPositionAttribute
-                //normal
+                position: initPositionAttribute(this.gl, this.programInfo, positions),
+                //normals
             },
-            //indicies: initIndexBuffer(gl, indices)
+            indicies: initIndexBuffer(this.gl, indices),
             numVertices: indices.length
         }
+    }
+
+    setup() {
+        this.lightingShader();
+        this.model.centroid = calculateCentroid(this.model.vertices);
+        this.initBuffers();
+        console.log(this);
     }
 }
