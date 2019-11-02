@@ -6,12 +6,32 @@ function setup() {
     navTag.classList = "navbar navbar-expand-lg navbar-dark bg-dark";
     navTag.innerHTML = `
     <div>
-    <a class="navbar-brand" href="#">Assignment 5</a>
+    <a class="navbar-brand" href="#">WebGL Engine</a>
     </div
     `;
 
     // Insert the tag into the HMTL document
     document.getElementById('myNavBar').appendChild(navTag);
+}
+
+function shaderValuesErrorCheck(programInfo) {
+    let missing = [];
+    //do attrib check
+    Object.keys(programInfo.attribLocations).map((attrib) => {
+        if (programInfo.attribLocations[attrib] === -1) {
+            missing.push(attrib);
+        }
+    });
+    //do uniform check
+    Object.keys(programInfo.uniformLocations).map((attrib) => {
+        if (!programInfo.uniformLocations[attrib]) {
+            missing.push(attrib);
+        }
+    });
+
+    if (missing.length > 0) {
+        printError('Shader Location Error', 'One or more of the uniform and attribute variables in the shaders could not be located or is not being used : ' + missing);
+    }
 }
 
 /**

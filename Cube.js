@@ -99,7 +99,7 @@ class Cube {
     }
 
     scale(scaleVec) {
-        vec3.add(this.model.scale, this.model.scale, scaleVec)
+        vec3.scale(this.model.scale, this.model.scale, scaleVec)
     }
 
     lightingShader() {
@@ -111,18 +111,27 @@ class Cube {
             // The attribute locations. WebGL will use there to hook up the buffers to the shader program.
             // NOTE: it may be wise to check if these calls fail by seeing that the returned location is not -1.
             attribLocations: {
-                position: this.gl.getAttribLocation(shaderProgram, 'aPosition'),
+                vertexPosition: this.gl.getAttribLocation(shaderProgram, 'aPosition'),
+                vertexNormal: this.gl.getAttribLocation(shaderProgram, 'aNormal'),
             },
             uniformLocations: {
+                projection: this.gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
+                view: this.gl.getUniformLocation(shaderProgram, 'uViewMatrix'),
+                model: this.gl.getUniformLocation(shaderProgram, 'uModelMatrix'),
+                normalMatrix: this.gl.getUniformLocation(shaderProgram, 'normalMatrix'),
+                diffuseVal: this.gl.getUniformLocation(shaderProgram, 'diffuseVal'),
+                ambientVal: this.gl.getUniformLocation(shaderProgram, 'ambientVal'),
+                specularVal: this.gl.getUniformLocation(shaderProgram, 'specularVal'),
+                nVal: this.gl.getUniformLocation(shaderProgram, 'nVal'),
+                cameraPosition: this.gl.getUniformLocation(shaderProgram, 'uCameraPosition'),
+                numLights: this.gl.getUniformLocation(shaderProgram, 'numLights'),
+                lightPositions: this.gl.getUniformLocation(shaderProgram, 'uLightPositions'),
+                lightColours: this.gl.getUniformLocation(shaderProgram, 'uLightColours'),
+                lightStrengths: this.gl.getUniformLocation(shaderProgram, 'uLightStrengths')
             },
         };
 
-        console.log(programInfo);
-
-        if (programInfo.attribLocations.position === -1) {
-            printError('Shader Location Error', 'One or more of the uniform and attribute variables in the shaders could not be located');
-        }
-
+        shaderValuesErrorCheck(programInfo);
         this.programInfo = programInfo;
 
     }
@@ -136,13 +145,12 @@ class Cube {
         var vertexArrayObject = this.gl.createVertexArray();
 
         this.gl.bindVertexArray(vertexArrayObject);
-        console.log(positions);
 
         this.buffers = {
             vao: vertexArrayObject,
             attributes: {
                 position: initPositionAttribute(this.gl, this.programInfo, positions),
-                //normals
+                normal: initNormalAttribute(this.gl, this.programInfo, normals),
             },
             indicies: initIndexBuffer(this.gl, indices),
             numVertices: indices.length
@@ -151,8 +159,7 @@ class Cube {
 
     setup() {
         this.lightingShader();
-        this.model.centroid = calculateCentroid(this.model.vertices);
+        this.centroid = calculateCentroid(this.model.vertices);
         this.initBuffers();
-        console.log(this);
     }
 }
