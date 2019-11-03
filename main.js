@@ -1,8 +1,16 @@
-main();
+
 
 var total = 0;
 
-function main() {
+window.onload = () => {
+    OBJ.downloadMeshes({
+        'apple': '/models/apple.obj'
+    }, main)
+}
+
+function main(meshes) {
+
+    console.log(meshes);
     const canvas = document.querySelector("#assignmentCanvas");
 
     // Initialize the WebGL2 context
@@ -19,6 +27,7 @@ function main() {
         `#version 300 es
         in vec3 aPosition;
         in vec3 aNormal;
+        in vec2 aUV;
 
         uniform mat4 uProjectionMatrix;
         uniform mat4 uViewMatrix;
@@ -26,11 +35,11 @@ function main() {
         uniform vec3 uCameraPosition;
         uniform mat4 normalMatrix;
         
-
         out vec3 oFragPosition;
         out vec3 oCameraPosition;
         out vec3 oNormal;
         out vec3 normalInterp;
+        out vec2 oUV;
 
         void main() {
             // Postion of the fragment in world space
@@ -41,6 +50,7 @@ function main() {
             oCameraPosition = uCameraPosition;
             oNormal = normalize((uModelMatrix * vec4(aNormal, 1.0)).xyz);
             normalInterp = vec3(normalMatrix * vec4(aNormal, 0.0));
+            oUV = aUV;
         }
         `;
 
@@ -53,6 +63,7 @@ function main() {
         in vec3 oCameraPosition;
         in vec3 oNormal;
         in vec3 normalInterp;
+        in vec2 oUV;
         
         uniform int numLights;
         uniform vec3 diffuseVal;
@@ -60,6 +71,8 @@ function main() {
         uniform vec3 specularVal;
         uniform float nVal;
         uniform float alphaVal;
+        uniform sampler2D uTexture;
+        uniform int samplerExists;
         uniform vec3 uLightPositions[MAX_LIGHTS];
         uniform vec3 uLightColours[MAX_LIGHTS];
         uniform float uLightStrengths[MAX_LIGHTS];
@@ -94,7 +107,15 @@ function main() {
                     specular += (specularVal * uLightColours[i]) * NHPow;
                 }
             }
-            fragColor = vec4(ambient + diffuse + specular, 1.0);
+
+            vec4 textureColor = texture(uTexture, oUV);
+
+            if (samplerExists == 1) {
+                fragColor = vec4((ambient + diffuse + specular) * textureColor.rgb, 1.0);
+            } else {
+                fragColor = vec4(ambient + diffuse + specular, 1.0);
+            }
+            
         }
         `;
 
@@ -106,13 +127,16 @@ function main() {
 
     testCube.setup();
 
-    let testCube2 = new Cube(gl, "test", null, [0.2, 0.2, 0.2], [0.6, 0.1, 0.6], [0.3, 0.3, 0.3], 25, 1.0);
+    let testCube2 = new Cube(gl, "test", null, [0.2, 0.2, 0.2], [0.6, 0.1, 0.6], [0.3, 0.3, 0.3], 25, 1.0, '/materials/plywood.jpg');
     testCube2.model.position = vec3.fromValues(-0.5, 0.0, 0.0);
     testCube2.scale(2);
     testCube2.vertShader = vertShaderSample;
     testCube2.fragShader = fragShaderSample;
 
     testCube2.setup();
+    //testModel.scale(1);
+    //
+    //testModel.setup();
 
     var state = {
         canvas: canvas,
@@ -133,9 +157,22 @@ function main() {
                 strength: 0.25,
             }
         ],
+        samplerExists: 0
     };
-    state.numLights = state.lights.length;
     state.objects = [];
+
+    Object.keys(meshes).map((mesh) => {
+        let testModel = new Model(gl, "testModel", meshes[mesh], null, [0.2, 0.2, 0.2], [0.6, 0.1, 0.2], [0.3, 0.3, 0.3], 25, 1.0, '/materials/plywood.jpg');
+        testModel.vertShader = vertShaderSample;
+        testModel.fragShader = fragShaderSample;
+        testModel.model.position = vec3.fromValues(1.5, -1.0, 5.0);
+        //testModel.scale(0.1)
+        testModel.setup();
+        state.objects.push(testModel);
+
+    })
+
+    state.numLights = state.lights.length;
     state.objects.push(testCube);
     state.objects.push(testCube2);
 
@@ -153,9 +190,9 @@ function startRendering(gl, state) {
         then = now;
 
         state.objects.map((object) => {
-            mat4.rotateX(object.model.rotation, object.model.rotation, 0.08 * deltaTime);
-            mat4.rotateY(object.model.rotation, object.model.rotation, 0.08 * deltaTime);
-            mat4.rotateZ(object.model.rotation, object.model.rotation, 0.08 * deltaTime);
+            mat4.rotateX(object.model.rotation, object.model.rotation, 0.3 * deltaTime);
+            mat4.rotateY(object.model.rotation, object.model.rotation, 0.3 * deltaTime);
+            mat4.rotateZ(object.model.rotation, object.model.rotation, 0.3 * deltaTime);
         })
 
         let movingLight = state.lights[0];
@@ -194,79 +231,94 @@ function drawScene(gl, deltaTime, state) {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     state.objects.map((object) => {
-        gl.useProgram(object.programInfo.program);
-        {
-
-            var projectionMatrix = mat4.create();
-            var fovy = 60.0 * Math.PI / 180.0; // Vertical field of view in radians
-            var aspect = state.canvas.clientWidth / state.canvas.clientHeight; // Aspect ratio of the canvas
-            var near = 0.1; // Near clipping plane
-            var far = 100.0; // Far clipping plane
-
-            mat4.perspective(projectionMatrix, fovy, aspect, near, far);
-
-            gl.uniformMatrix4fv(object.programInfo.uniformLocations.projection, false, projectionMatrix);
-
-            var viewMatrix = mat4.create();
-            mat4.lookAt(
-                viewMatrix,
-                state.camera.position,
-                state.camera.center,
-                state.camera.up,
-            );
-            gl.uniformMatrix4fv(object.programInfo.uniformLocations.view, false, viewMatrix);
-
-            var modelMatrix = mat4.create();
-            var negCentroid = vec3.fromValues(0.0, 0.0, 0.0);
-            vec3.negate(negCentroid, object.centroid);
-
-            mat4.translate(modelMatrix, modelMatrix, object.model.position);
-            mat4.translate(modelMatrix, modelMatrix, object.centroid);
-            mat4.mul(modelMatrix, modelMatrix, object.model.rotation);
-            mat4.scale(modelMatrix, modelMatrix, object.model.scale);
-            mat4.translate(modelMatrix, modelMatrix, negCentroid);
-
-            object.modelMatrix = modelMatrix;
-
-            var normalMatrix = mat4.create();
-            mat4.invert(normalMatrix, modelMatrix);
-            mat4.transpose(normalMatrix, normalMatrix);
-
-            gl.uniformMatrix4fv(object.programInfo.uniformLocations.model, false, modelMatrix);
-            gl.uniformMatrix4fv(object.programInfo.uniformLocations.normalMatrix, false, normalMatrix);
-
-            gl.uniform3fv(object.programInfo.uniformLocations.diffuseVal, object.material.diffuse);
-            gl.uniform3fv(object.programInfo.uniformLocations.ambientVal, object.material.ambient);
-            gl.uniform3fv(object.programInfo.uniformLocations.specularVal, object.material.specular);
-            gl.uniform1f(object.programInfo.uniformLocations.nVal, object.material.n);
-
-            gl.uniform3fv(object.programInfo.uniformLocations.cameraPosition, state.camera.position);
-
-            gl.uniform1i(object.programInfo.uniformLocations.numLights, state.numLights);
-
-            let lightPositionArray = [], lightColourArray = [], lightStrengthArray = [];
-            state.lights.map((light) => {
-                //iterate through position and colors (since both vec3s)
-                for (let i = 0; i < 3; i++) {
-                    lightPositionArray.push(light.position[i]);
-                    lightColourArray.push(light.colour[i]);
-                }
-                lightStrengthArray.push(light.strength);
-            })
-
-            gl.uniform3fv(object.programInfo.uniformLocations.lightPositions, lightPositionArray);
-            gl.uniform3fv(object.programInfo.uniformLocations.lightColours, lightColourArray);
-            gl.uniform1fv(object.programInfo.uniformLocations.lightStrengths, lightStrengthArray);
-
+        if (object.loaded) {
+            gl.useProgram(object.programInfo.program);
             {
-                // Bind the buffer we want to draw
-                gl.bindVertexArray(object.buffers.vao);
 
-                // Draw the object
-                const offset = 0; // Number of elements to skip before starting
-                gl.drawElements(gl.TRIANGLES, object.buffers.numVertices, gl.UNSIGNED_SHORT, offset);
+                var projectionMatrix = mat4.create();
+                var fovy = 60.0 * Math.PI / 180.0; // Vertical field of view in radians
+                var aspect = state.canvas.clientWidth / state.canvas.clientHeight; // Aspect ratio of the canvas
+                var near = 0.1; // Near clipping plane
+                var far = 100.0; // Far clipping plane
+
+                mat4.perspective(projectionMatrix, fovy, aspect, near, far);
+
+                gl.uniformMatrix4fv(object.programInfo.uniformLocations.projection, false, projectionMatrix);
+
+                var viewMatrix = mat4.create();
+                mat4.lookAt(
+                    viewMatrix,
+                    state.camera.position,
+                    state.camera.center,
+                    state.camera.up,
+                );
+                gl.uniformMatrix4fv(object.programInfo.uniformLocations.view, false, viewMatrix);
+
+                var modelMatrix = mat4.create();
+                var negCentroid = vec3.fromValues(0.0, 0.0, 0.0);
+                vec3.negate(negCentroid, object.centroid);
+
+                mat4.translate(modelMatrix, modelMatrix, object.model.position);
+                mat4.translate(modelMatrix, modelMatrix, object.centroid);
+                mat4.mul(modelMatrix, modelMatrix, object.model.rotation);
+                mat4.scale(modelMatrix, modelMatrix, object.model.scale);
+                mat4.translate(modelMatrix, modelMatrix, negCentroid);
+
+                object.modelMatrix = modelMatrix;
+
+                var normalMatrix = mat4.create();
+                mat4.invert(normalMatrix, modelMatrix);
+                mat4.transpose(normalMatrix, normalMatrix);
+
+                gl.uniformMatrix4fv(object.programInfo.uniformLocations.model, false, modelMatrix);
+                gl.uniformMatrix4fv(object.programInfo.uniformLocations.normalMatrix, false, normalMatrix);
+
+                gl.uniform3fv(object.programInfo.uniformLocations.diffuseVal, object.material.diffuse);
+                gl.uniform3fv(object.programInfo.uniformLocations.ambientVal, object.material.ambient);
+                gl.uniform3fv(object.programInfo.uniformLocations.specularVal, object.material.specular);
+                gl.uniform1f(object.programInfo.uniformLocations.nVal, object.material.n);
+
+                gl.uniform3fv(object.programInfo.uniformLocations.cameraPosition, state.camera.position);
+
+                gl.uniform1i(object.programInfo.uniformLocations.numLights, state.numLights);
+
+                let lightPositionArray = [], lightColourArray = [], lightStrengthArray = [];
+                state.lights.map((light) => {
+                    //iterate through position and colors (since both vec3s)
+                    for (let i = 0; i < 3; i++) {
+                        lightPositionArray.push(light.position[i]);
+                        lightColourArray.push(light.colour[i]);
+                    }
+                    lightStrengthArray.push(light.strength);
+                })
+
+                gl.uniform3fv(object.programInfo.uniformLocations.lightPositions, lightPositionArray);
+                gl.uniform3fv(object.programInfo.uniformLocations.lightColours, lightColourArray);
+                gl.uniform1fv(object.programInfo.uniformLocations.lightStrengths, lightStrengthArray);
+
+                {
+                    // Bind the buffer we want to draw
+                    gl.bindVertexArray(object.buffers.vao);
+
+                    if (object.model.texture != null) {
+                        state.samplerExists = 1;
+                        gl.uniform1i(object.programInfo.uniformLocations.samplerExists, state.samplerExists);
+                        gl.uniform1i(object.programInfo.uniformLocations.sampler, object.model.texture);
+                        gl.bindTexture(gl.TEXTURE_2D, object.model.texture);
+                        gl.activeTexture(gl.TEXTURE0);
+                    } else {
+                        state.samplerExists = 0;
+                        gl.uniform1i(object.programInfo.uniformLocations.samplerExists, state.samplerExists);
+                        gl.bindTexture(gl.TEXTURE_2D, null);
+                        gl.activeTexture(gl.TEXTURE0);
+                    }
+
+                    // Draw the object
+                    const offset = 0; // Number of elements to skip before starting
+                    gl.drawElements(gl.TRIANGLES, object.buffers.numVertices, gl.UNSIGNED_SHORT, offset);
+                }
+
             }
-
         }
     })
 }

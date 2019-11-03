@@ -1,11 +1,13 @@
 class Cube {
-    constructor(glContext, name, parent = null, ambient, diffuse, specular, n, alpha) {
+    constructor(glContext, name, parent = null, ambient, diffuse, specular, n, alpha, texture) {
         this.state = {};
         this.gl = glContext;
         this.name = name;
         this.parent = parent;
 
-        this.material = { ambient, diffuse, specular, n, alpha };
+        this.loaded = false;
+
+        this.material = { ambient, diffuse, specular, n, alpha, textureID: texture };
         this.model = {
             vertices: [
                 [0.0, 0.0, 0.0],
@@ -47,14 +49,35 @@ class Cube {
                 20, 21, 22, 21, 22, 23
             ],
             uvs: [
-                [0, 0],
-                [0.5, 1],
-                [1, 0],
-                [0, 0],
-                [0.5, 1],
-                [1, 0],
-                [0, 0],
-                [0.5, 1]
+                0.0, 0.0,
+                1.0, 0.0,
+                1.0, 1.0,
+                0.0, 1.0,
+
+                0.0, 0.0,
+                1.0, 0.0,
+                1.0, 1.0,
+                0.0, 1.0,
+
+                0.0, 0.0,
+                1.0, 0.0,
+                1.0, 1.0,
+                0.0, 1.0,
+
+                0.0, 0.0,
+                1.0, 0.0,
+                1.0, 1.0,
+                0.0, 1.0,
+
+                0.0, 0.0,
+                1.0, 0.0,
+                1.0, 1.0,
+                0.0, 1.0,
+
+                0.0, 0.0,
+                1.0, 0.0,
+                1.0, 1.0,
+                0.0, 1.0
             ],
             normals: [
                 0.0, 0.0, -1.0,
@@ -87,6 +110,7 @@ class Cube {
                 -1.0, 0.0, 0.0,
                 -1.0, 0.0, 0.0
             ],
+            texture: texture ? getTextures(glContext, this) : null,
             buffers: null,
             modelMatrix: mat4.create(),
             position: vec3.fromValues(0.0, 0.0, 0.0),
@@ -113,6 +137,7 @@ class Cube {
             attribLocations: {
                 vertexPosition: this.gl.getAttribLocation(shaderProgram, 'aPosition'),
                 vertexNormal: this.gl.getAttribLocation(shaderProgram, 'aNormal'),
+                vertexUV: this.gl.getAttribLocation(shaderProgram, 'aUV'),
             },
             uniformLocations: {
                 projection: this.gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
@@ -127,7 +152,9 @@ class Cube {
                 numLights: this.gl.getUniformLocation(shaderProgram, 'numLights'),
                 lightPositions: this.gl.getUniformLocation(shaderProgram, 'uLightPositions'),
                 lightColours: this.gl.getUniformLocation(shaderProgram, 'uLightColours'),
-                lightStrengths: this.gl.getUniformLocation(shaderProgram, 'uLightStrengths')
+                lightStrengths: this.gl.getUniformLocation(shaderProgram, 'uLightStrengths'),
+                samplerExists: this.gl.getUniformLocation(shaderProgram, "samplerExists"),
+                sampler: this.gl.getUniformLocation(shaderProgram, 'uTexture')
             },
         };
 
@@ -141,6 +168,7 @@ class Cube {
         const positions = new Float32Array(this.model.vertices.flat());
         const normals = new Float32Array(this.model.normals.flat());
         const indices = new Uint16Array(this.model.triangles);
+        const textureCoords = new Float32Array(this.model.uvs);
 
         var vertexArrayObject = this.gl.createVertexArray();
 
@@ -151,15 +179,19 @@ class Cube {
             attributes: {
                 position: initPositionAttribute(this.gl, this.programInfo, positions),
                 normal: initNormalAttribute(this.gl, this.programInfo, normals),
+                uv: initTextureCoords(this.gl, this.programInfo, textureCoords),
             },
             indicies: initIndexBuffer(this.gl, indices),
             numVertices: indices.length
         }
+
+        this.loaded = true;
     }
 
     setup() {
         this.lightingShader();
-        this.centroid = calculateCentroid(this.model.vertices);
+        this.centroid = calculateCentroid(this.model.vertices.flat());
         this.initBuffers();
+        console.log(this)
     }
 }
