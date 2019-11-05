@@ -119,7 +119,7 @@ function main(meshes) {
         }
         `;
 
-    let testCube = new Cube(gl, "test", null, [0.1, 0.1, 0.1], [0.2, 0.6, 0.6], [0.3, 0.3, 0.3], 10, 1.0);
+    let testCube = new Cube(gl, "test0", null, [0.1, 0.1, 0.1], [0.2, 0.6, 0.6], [0.3, 0.3, 0.3], 10, 1.0);
     testCube.scale(1.5);
     testCube.model.position = vec3.fromValues(1.5, 0.0, 0.0);
     testCube.vertShader = vertShaderSample;
@@ -127,7 +127,7 @@ function main(meshes) {
 
     testCube.setup();
 
-    let testCube2 = new Cube(gl, "test", null, [0.2, 0.2, 0.2], [0.6, 0.1, 0.6], [0.3, 0.3, 0.3], 25, 1.0, '/materials/plywood.jpg');
+    let testCube2 = new Cube(gl, "woodCube", null, [0.2, 0.2, 0.2], [0.6, 0.6, 0.6], [0.3, 0.3, 0.3], 25, 1.0, '/materials/plywood.jpg');
     testCube2.model.position = vec3.fromValues(-0.5, 0.0, 0.0);
     testCube2.scale(2);
     testCube2.vertShader = vertShaderSample;
@@ -141,17 +141,20 @@ function main(meshes) {
     var state = {
         canvas: canvas,
         camera: {
+            name: 'camera',
             position: vec3.fromValues(0.5, 0.5, -2.5),
             center: vec3.fromValues(0.5, 0.5, 0.0),
             up: vec3.fromValues(0.0, 1.0, 0.0),
         },
         lights: [
             {
+                name:'light0',
                 position: vec3.fromValues(-0.6, 0.0, -1.0),
                 colour: vec3.fromValues(1.0, 1.0, 1.0),
                 strength: 0.25,
             },
             {
+                name:'light1',
                 position: vec3.fromValues(-0.6, 0.0, -1.0),
                 colour: vec3.fromValues(1.0, 1.0, 1.0),
                 strength: 0.25,
@@ -176,6 +179,13 @@ function main(meshes) {
     state.objects.push(testCube);
     state.objects.push(testCube2);
 
+    createSceneGui(state);
+    //setup mouse click listener
+
+    canvas.addEventListener('click', (event) => {
+        getMousePick(event, state);
+    })
+
     startRendering(gl, state);
 }
 
@@ -189,13 +199,13 @@ function startRendering(gl, state) {
         const deltaTime = now - then;
         then = now;
 
-        state.objects.map((object) => {
+        /*state.objects.map((object) => {
             mat4.rotateX(object.model.rotation, object.model.rotation, 0.3 * deltaTime);
             mat4.rotateY(object.model.rotation, object.model.rotation, 0.3 * deltaTime);
             mat4.rotateZ(object.model.rotation, object.model.rotation, 0.3 * deltaTime);
-        })
+        })*/
 
-        let movingLight = state.lights[0];
+        /*let movingLight = state.lights[0];
         let x, y, z;
 
         y = 0;
@@ -210,7 +220,7 @@ function startRendering(gl, state) {
 
         if (total === 180) {
             total = 0;
-        }
+        } */
 
         // Draw our scene
         drawScene(gl, deltaTime, state);
@@ -243,7 +253,10 @@ function drawScene(gl, deltaTime, state) {
 
                 mat4.perspective(projectionMatrix, fovy, aspect, near, far);
 
+                
                 gl.uniformMatrix4fv(object.programInfo.uniformLocations.projection, false, projectionMatrix);
+
+                state.projectionMatrix = projectionMatrix;
 
                 var viewMatrix = mat4.create();
                 mat4.lookAt(
@@ -253,6 +266,8 @@ function drawScene(gl, deltaTime, state) {
                     state.camera.up,
                 );
                 gl.uniformMatrix4fv(object.programInfo.uniformLocations.view, false, viewMatrix);
+
+                state.viewMatrix = viewMatrix;
 
                 var modelMatrix = mat4.create();
                 var negCentroid = vec3.fromValues(0.0, 0.0, 0.0);

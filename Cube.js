@@ -192,6 +192,5 @@ class Cube {
         this.lightingShader();
         this.centroid = calculateCentroid(this.model.vertices.flat());
         this.initBuffers();
-        console.log(this)
     }
 }

@@ -93,8 +93,6 @@ class Model {
 
         shaderValuesErrorCheck(programInfo);
         this.programInfo = programInfo;
-
-        console.log(this);
         this.initBuffers();
 
     }
