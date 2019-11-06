@@ -3,14 +3,14 @@ class Model {
         this.gl = glContext;
         this.name = name;
         this.parent = parent;
+        this.type = "mesh";
         this.loaded = false;
 
         this.material = { ambient, diffuse, specular, n, alpha, textureID: texture };
         this.model = {
-            triangles: meshDetails.indices,
-            normals: meshDetails.vertexNormals,
+            normals: meshDetails.normals,
             vertices: meshDetails.vertices,
-            uvs: meshDetails.textures,
+            uvs: meshDetails.uvs,
             position: vec3.fromValues(0.0, 0.0, 0.0),
             rotation: mat4.create(),
             scale: vec3.fromValues(1.0, 1.0, 1.0),
@@ -33,10 +33,7 @@ class Model {
         //create vertices, normal and indicies arrays
         const positions = new Float32Array(this.model.vertices);
         const normals = new Float32Array(this.model.normals);
-        const indices = new Uint16Array(this.model.triangles);
         const textureCoords = new Float32Array(this.model.uvs);
-
-        //console.log(positions);
 
         var vertexArrayObject = this.gl.createVertexArray();
 
@@ -49,10 +46,9 @@ class Model {
                 normal: initNormalAttribute(this.gl, this.programInfo, normals),
                 uv: initTextureCoords(this.gl, this.programInfo, textureCoords),
             },
-            indicies: initIndexBuffer(this.gl, indices),
-            numVertices: indices.length
+            numVertices: positions.length
         }
-        
+
         this.loaded = true;
         console.log(this.name + " loaded successfully!");
     }

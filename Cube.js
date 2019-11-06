@@ -4,6 +4,7 @@ class Cube {
         this.gl = glContext;
         this.name = name;
         this.parent = parent;
+        this.type = "primitive";
 
         this.loaded = false;
 

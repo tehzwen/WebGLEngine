@@ -293,3 +293,77 @@ function getTextures(gl, object) {
         return texture;
     }
 }
+
+function parseOBJFileToJSON(objFileURL, cb) {
+
+    var vertices = [], normals = [], textureCoords = [], faces = [];
+
+    fetch(objFileURL)
+        .then((data) => {
+            return data.text();
+        })
+        .then((text) => {
+            let mesh = OBJLoader.prototype.parse(text);
+            cb(mesh);
+            /*
+            let newLineSplit = text.split("\n");
+            //console.log(newLineSplit);
+            //iterate through the lines and create values
+
+            //first check if its a vertex
+
+            newLineSplit.map((line) => {
+                if (line[0] === 'v' && line[1] !== 'n' && line[1] !== 't') {
+                    //now we will split the line on spaces
+                    let spaceSplit = line.split(" ");
+                    spaceSplit = spaceSplit.filter((str) => {
+                        return /\S/.test(str);
+                    });
+                    vertices.push(parseFloat(spaceSplit[1]));
+                    vertices.push(parseFloat(spaceSplit[2]));
+                    vertices.push(parseFloat(spaceSplit[3]));
+                } else if (line[0] === 'v' && line[1] === 'n') {
+                    let spaceSplit = line.split(" ");
+                    spaceSplit = spaceSplit.filter((str) => {
+                        return /\S/.test(str);
+                    });
+                    normals.push(parseFloat(spaceSplit[1]));
+                    normals.push(parseFloat(spaceSplit[2]));
+                    normals.push(parseFloat(spaceSplit[3]));
+                } else if (line[0] === 'v' && line[1] === 't') {
+                    let spaceSplit = line.split(" ");
+                    spaceSplit = spaceSplit.filter((str) => {
+                        return /\S/.test(str);
+                    });
+                    textureCoords.push(parseFloat(spaceSplit[1]));
+                    textureCoords.push(parseFloat(spaceSplit[2]));
+                } else if (line[0] === 'f') {
+                    //split by spaces then split each value we need by /
+                    let spaceSplit = line.split(" ");
+                    spaceSplit = spaceSplit.filter((str) => {
+                        return /\S/.test(str);
+                    });
+                    let faceValues = spaceSplit.slice(1, 4);
+                    //iterate through the values and get first value before the /
+                    faceValues.map((face) => {
+                        let slashSplit = face.split("/");
+                        //console.log(slashSplit);
+                        faces.push(parseInt(slashSplit[0]) - 1);
+                    })
+                }
+            })
+
+            let mesh = {
+                vertices,
+                normals,
+                textureCoords,
+                faces
+            }
+
+            cb(mesh);
+            */
+        })
+        .catch((err) => {
+            console.error(err);
+        })
+}

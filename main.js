@@ -1,16 +1,24 @@
-
-
 var total = 0;
 
+var meshes = ["./models/bunny.obj"], loadedMeshes = [];
+
 window.onload = () => {
-    OBJ.downloadMeshes({
-        'apple': '/models/apple.obj'
-    }, main)
+    for (let i = 0; i < meshes.length; i++) {
+        parseOBJFileToJSON(meshes[i], meshLoaded);
+    }
+}
+
+
+function meshLoaded(mesh) {
+    loadedMeshes.push(mesh);
+
+    if (loadedMeshes.length === meshes.length) {
+        main(loadedMeshes);
+    }
 }
 
 function main(meshes) {
 
-    console.log(meshes);
     const canvas = document.querySelector("#assignmentCanvas");
 
     // Initialize the WebGL2 context
@@ -134,9 +142,6 @@ function main(meshes) {
     testCube2.fragShader = fragShaderSample;
 
     testCube2.setup();
-    //testModel.scale(1);
-    //
-    //testModel.setup();
 
     var state = {
         canvas: canvas,
@@ -148,13 +153,13 @@ function main(meshes) {
         },
         lights: [
             {
-                name:'light0',
+                name: 'light0',
                 position: vec3.fromValues(-0.6, 0.0, -1.0),
                 colour: vec3.fromValues(1.0, 1.0, 1.0),
                 strength: 0.25,
             },
             {
-                name:'light1',
+                name: 'light1',
                 position: vec3.fromValues(-0.6, 0.0, -1.0),
                 colour: vec3.fromValues(1.0, 1.0, 1.0),
                 strength: 0.25,
@@ -164,15 +169,14 @@ function main(meshes) {
     };
     state.objects = [];
 
-    Object.keys(meshes).map((mesh) => {
-        let testModel = new Model(gl, "testModel", meshes[mesh], null, [0.2, 0.2, 0.2], [0.6, 0.1, 0.2], [0.3, 0.3, 0.3], 25, 1.0, '/materials/plywood.jpg');
+    meshes.map((mesh) => {
+        let testModel = new Model(gl, "testModel", mesh, null, [0.2, 0.2, 0.2], [1.0, 1.0, 1.0], [0.3, 0.3, 0.3], 25, 0.2);
         testModel.vertShader = vertShaderSample;
         testModel.fragShader = fragShaderSample;
-        testModel.model.position = vec3.fromValues(1.5, -1.0, 5.0);
-        //testModel.scale(0.1)
-        testModel.setup();
-        state.objects.push(testModel);
 
+        testModel.setup();
+
+        state.objects.push(testModel);
     })
 
     state.numLights = state.lights.length;
@@ -199,11 +203,11 @@ function startRendering(gl, state) {
         const deltaTime = now - then;
         then = now;
 
-        /*state.objects.map((object) => {
-            mat4.rotateX(object.model.rotation, object.model.rotation, 0.3 * deltaTime);
+        state.objects.map((object) => {
+            //mat4.rotateX(object.model.rotation, object.model.rotation, 0.3 * deltaTime);
             mat4.rotateY(object.model.rotation, object.model.rotation, 0.3 * deltaTime);
-            mat4.rotateZ(object.model.rotation, object.model.rotation, 0.3 * deltaTime);
-        })*/
+            //mat4.rotateZ(object.model.rotation, object.model.rotation, 0.3 * deltaTime);
+        })
 
         /*let movingLight = state.lights[0];
         let x, y, z;
@@ -242,6 +246,10 @@ function drawScene(gl, deltaTime, state) {
 
     state.objects.map((object) => {
         if (object.loaded) {
+
+            /*if (object.name === "modelo") {
+                console.log()
+            }*/
             gl.useProgram(object.programInfo.program);
             {
 
@@ -253,7 +261,7 @@ function drawScene(gl, deltaTime, state) {
 
                 mat4.perspective(projectionMatrix, fovy, aspect, near, far);
 
-                
+
                 gl.uniformMatrix4fv(object.programInfo.uniformLocations.projection, false, projectionMatrix);
 
                 state.projectionMatrix = projectionMatrix;
@@ -330,9 +338,12 @@ function drawScene(gl, deltaTime, state) {
 
                     // Draw the object
                     const offset = 0; // Number of elements to skip before starting
-                    gl.drawElements(gl.TRIANGLES, object.buffers.numVertices, gl.UNSIGNED_SHORT, offset);
+                    if (object.type === "mesh") {
+                        gl.drawArrays(gl.TRIANGLES, offset, object.buffers.numVertices);
+                    } else {
+                        gl.drawElements(gl.TRIANGLES, object.buffers.numVertices, gl.UNSIGNED_SHORT, offset);
+                    }
                 }
-
             }
         }
     })
