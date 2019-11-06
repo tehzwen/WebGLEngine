@@ -1,2 +1,2 @@
-# CMPT370Lab5
-Graphics lab 5 for WebGL
+# WebGLEngine
+Simple WebGL rendering engine used for simple playgrounding with webgl

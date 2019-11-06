@@ -1,4 +1,3 @@
-setup()
 /**
  * @param  {} gl WebGL2 Context
  * @param  {string} vsSource Vertex shader GLSL source code
@@ -295,9 +294,6 @@ function getTextures(gl, object) {
 }
 
 function parseOBJFileToJSON(objFileURL, cb) {
-
-    var vertices = [], normals = [], textureCoords = [], faces = [];
-
     fetch(objFileURL)
         .then((data) => {
             return data.text();
@@ -305,65 +301,22 @@ function parseOBJFileToJSON(objFileURL, cb) {
         .then((text) => {
             let mesh = OBJLoader.prototype.parse(text);
             cb(mesh);
-            /*
-            let newLineSplit = text.split("\n");
-            //console.log(newLineSplit);
-            //iterate through the lines and create values
-
-            //first check if its a vertex
-
-            newLineSplit.map((line) => {
-                if (line[0] === 'v' && line[1] !== 'n' && line[1] !== 't') {
-                    //now we will split the line on spaces
-                    let spaceSplit = line.split(" ");
-                    spaceSplit = spaceSplit.filter((str) => {
-                        return /\S/.test(str);
-                    });
-                    vertices.push(parseFloat(spaceSplit[1]));
-                    vertices.push(parseFloat(spaceSplit[2]));
-                    vertices.push(parseFloat(spaceSplit[3]));
-                } else if (line[0] === 'v' && line[1] === 'n') {
-                    let spaceSplit = line.split(" ");
-                    spaceSplit = spaceSplit.filter((str) => {
-                        return /\S/.test(str);
-                    });
-                    normals.push(parseFloat(spaceSplit[1]));
-                    normals.push(parseFloat(spaceSplit[2]));
-                    normals.push(parseFloat(spaceSplit[3]));
-                } else if (line[0] === 'v' && line[1] === 't') {
-                    let spaceSplit = line.split(" ");
-                    spaceSplit = spaceSplit.filter((str) => {
-                        return /\S/.test(str);
-                    });
-                    textureCoords.push(parseFloat(spaceSplit[1]));
-                    textureCoords.push(parseFloat(spaceSplit[2]));
-                } else if (line[0] === 'f') {
-                    //split by spaces then split each value we need by /
-                    let spaceSplit = line.split(" ");
-                    spaceSplit = spaceSplit.filter((str) => {
-                        return /\S/.test(str);
-                    });
-                    let faceValues = spaceSplit.slice(1, 4);
-                    //iterate through the values and get first value before the /
-                    faceValues.map((face) => {
-                        let slashSplit = face.split("/");
-                        //console.log(slashSplit);
-                        faces.push(parseInt(slashSplit[0]) - 1);
-                    })
-                }
-            })
-
-            let mesh = {
-                vertices,
-                normals,
-                textureCoords,
-                faces
-            }
-
-            cb(mesh);
-            */
         })
         .catch((err) => {
             console.error(err);
         })
+}
+
+/**
+ * 
+ * @param {hex value of color} hex 
+ */
+function hexToRGB(hex) {
+    let r = hex.substring(1, 3);
+    let g = hex.substring(3, 5);
+    let b = hex.substring(5, 7);
+    r = parseInt(r, 16);
+    g = parseInt(g, 16);
+    b = parseInt(b, 16);
+    return [r/255, g/255, b/255];
 }

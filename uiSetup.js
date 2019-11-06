@@ -1,3 +1,4 @@
+setup();
 
 function setup() {
     // Create a HTML tag to display to the user
@@ -16,6 +17,7 @@ function setup() {
 function createSceneGui(state) {
     //get objects first
     let sideNav = document.getElementById("objectsNav");
+    sideNav.innerHTML = "";
 
     state.objects.map((object) => {
         let objectElement = document.createElement("div");
@@ -67,6 +69,54 @@ function createSceneGui(state) {
     objectElement.appendChild(objectName);
     sideNav.appendChild(objectElement);
 
+    let addNav = document.getElementById("addObjectsNav");
+    addNav.innerHTML = "";
+    let objectTypeSelect = document.createElement("select");
+    objectTypeSelect.classList = "form-control";
+    objectTypeSelect.addEventListener('change', (event) => {
+        handleTypeSelectChange(event);
+    })
+
+    createSelectionOptions(["Cube", "Mesh"], objectTypeSelect);
+
+    let addNewButton = document.createElement("button");
+    addNewButton.innerHTML = "New Object";
+    addNewButton.classList = "btn btn-primary";
+    addNewButton.addEventListener('click', () => {
+        addObject(objectTypeSelect.value);
+    });
+
+    addNav.appendChild(objectTypeSelect);
+    addNav.appendChild(addNewButton);
+
+}
+
+function createSelectionOptions(optionsArr, selectObj) {
+    optionsArr.map((option) => {
+        let tempSelect = document.createElement("option");
+        tempSelect.innerHTML = option;
+        selectObj.appendChild(tempSelect);
+    })
+}
+
+function handleTypeSelectChange(event) {
+    if (event.target.value === "Mesh") {
+        let addNav = document.getElementById("addObjectsNav");
+        let addButton = addNav.lastChild;
+
+        let fileUpload = document.createElement("input");
+        fileUpload.id = "meshUpload";
+        fileUpload.type = "file";
+        fileUpload.classList = "form-control-file";
+
+        addNav.insertBefore(fileUpload, addButton);
+    } else {
+        let fileUpload = document.getElementById("meshUpload");
+        if (fileUpload) {
+            fileUpload.remove();
+        }
+
+    }
 }
 
 function displayObjectValues(object) {
@@ -117,6 +167,10 @@ function displayObjectValues(object) {
         `;
 
 
+    let diffuseColorPicker = document.createElement("input");
+    diffuseColorPicker.type = "color";
+    diffuseColorPicker.classList = "form-control";
+
 
     positionalInputDiv.appendChild(prependDivX);
     positionalInputDiv.appendChild(objectPositionX);
@@ -134,6 +188,7 @@ function displayObjectValues(object) {
     selectedObjectDiv.appendChild(objectTitle);
     selectedObjectDiv.appendChild(positionTitle);
     selectedObjectDiv.appendChild(positionalInputDiv);
+    selectedObjectDiv.appendChild(diffuseColorPicker);
 
 }
 

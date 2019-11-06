@@ -1,4 +1,5 @@
 var total = 0;
+var state = {};
 
 var meshes = ["./models/bunny.obj"], loadedMeshes = [];
 
@@ -14,6 +15,21 @@ function meshLoaded(mesh) {
 
     if (loadedMeshes.length === meshes.length) {
         main(loadedMeshes);
+    }
+}
+
+//function for adding more objects so we have reference to state
+function addObject(type, url = null) {
+    if (type === "Cube") {
+        console.log("adding a new cube!");
+        console.log(state);
+        let testCube = new Cube(state.gl, "Cube", null, [0.1, 0.1, 0.1], [0.6, 0.6, 0.6], [0.3, 0.3, 0.3], 10, 1.0);
+        testCube.vertShader = state.vertShaderSample;
+        testCube.fragShader = state.fragShaderSample;
+        testCube.setup();
+
+        addObjectToScene(state, testCube);
+        createSceneGui(state);
     }
 }
 
@@ -127,24 +143,29 @@ function main(meshes) {
         }
         `;
 
-    let testCube = new Cube(gl, "test0", null, [0.1, 0.1, 0.1], [0.2, 0.6, 0.6], [0.3, 0.3, 0.3], 10, 1.0);
+    let testCube = new Cube(gl, "Cube", null, [0.1, 0.1, 0.1], [0.2, 0.6, 0.6], [0.3, 0.3, 0.3], 10, 1.0);
     testCube.scale(1.5);
-    testCube.model.position = vec3.fromValues(1.5, 0.0, 0.0);
+    
     testCube.vertShader = vertShaderSample;
     testCube.fragShader = fragShaderSample;
 
     testCube.setup();
-
+    testCube.model.position = vec3.fromValues(1.5, 0.0, 0.0);
     let testCube2 = new Cube(gl, "woodCube", null, [0.2, 0.2, 0.2], [0.6, 0.6, 0.6], [0.3, 0.3, 0.3], 25, 1.0, '/materials/plywood.jpg');
-    testCube2.model.position = vec3.fromValues(-0.5, 0.0, 0.0);
+    
     testCube2.scale(2);
     testCube2.vertShader = vertShaderSample;
     testCube2.fragShader = fragShaderSample;
 
     testCube2.setup();
+    testCube2.model.position = vec3.fromValues(-0.5, 0.0, 0.0);
 
-    var state = {
+    state = {
+        gl,
+        vertShaderSample,
+        fragShaderSample,
         canvas: canvas,
+        objectCount: 0,
         camera: {
             name: 'camera',
             position: vec3.fromValues(0.5, 0.5, -2.5),
@@ -170,18 +191,18 @@ function main(meshes) {
     state.objects = [];
 
     meshes.map((mesh) => {
-        let testModel = new Model(gl, "testModel", mesh, null, [0.2, 0.2, 0.2], [1.0, 1.0, 1.0], [0.3, 0.3, 0.3], 25, 0.2);
+        let testModel = new Model(gl, "Mesh", mesh, null, [0.2, 0.2, 0.2], [1.0, 1.0, 1.0], [0.3, 0.3, 0.3], 25, 0.2);
         testModel.vertShader = vertShaderSample;
         testModel.fragShader = fragShaderSample;
 
         testModel.setup();
 
-        state.objects.push(testModel);
+        addObjectToScene(state, testModel);
     })
 
     state.numLights = state.lights.length;
-    state.objects.push(testCube);
-    state.objects.push(testCube2);
+    addObjectToScene(state, testCube);
+    addObjectToScene(state, testCube2);
 
     createSceneGui(state);
     //setup mouse click listener
@@ -191,6 +212,12 @@ function main(meshes) {
     })
 
     startRendering(gl, state);
+}
+
+function addObjectToScene(state, object) {
+    object.name = object.name + state.objectCount;
+    state.objects.push(object);
+    state.objectCount++;
 }
 
 function startRendering(gl, state) {
@@ -203,28 +230,12 @@ function startRendering(gl, state) {
         const deltaTime = now - then;
         then = now;
 
+        /*
         state.objects.map((object) => {
             //mat4.rotateX(object.model.rotation, object.model.rotation, 0.3 * deltaTime);
             mat4.rotateY(object.model.rotation, object.model.rotation, 0.3 * deltaTime);
             //mat4.rotateZ(object.model.rotation, object.model.rotation, 0.3 * deltaTime);
-        })
-
-        /*let movingLight = state.lights[0];
-        let x, y, z;
-
-        y = 0;
-        let d = new Date();
-        //console.log(deltaTime)
-
-        x = Math.sin(total);
-        z = Math.cos(total);
-
-        movingLight.position = vec3.fromValues(x, y, z);
-        total += 1 * deltaTime;
-
-        if (total === 180) {
-            total = 0;
-        } */
+        })*/
 
         // Draw our scene
         drawScene(gl, deltaTime, state);
@@ -247,9 +258,6 @@ function drawScene(gl, deltaTime, state) {
     state.objects.map((object) => {
         if (object.loaded) {
 
-            /*if (object.name === "modelo") {
-                console.log()
-            }*/
             gl.useProgram(object.programInfo.program);
             {
 
@@ -339,7 +347,7 @@ function drawScene(gl, deltaTime, state) {
                     // Draw the object
                     const offset = 0; // Number of elements to skip before starting
                     if (object.type === "mesh") {
-                        gl.drawArrays(gl.TRIANGLES, offset, object.buffers.numVertices);
+                        gl.drawArrays(gl.TRIANGLES, offset, object.buffers.numVertices/3);
                     } else {
                         gl.drawElements(gl.TRIANGLES, object.buffers.numVertices, gl.UNSIGNED_SHORT, offset);
                     }
