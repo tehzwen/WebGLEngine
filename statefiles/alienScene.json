@@ -1,0 +1,45 @@
+
+{
+    "objects" : [
+        {
+            "name" : "apple",
+            "material" : {"diffuse" : [0.2, 0.2, 0.2], "ambient": [0.1, 0.1, 0.1], "specular": [0.8, 0.8, 0.8], "n":10, "alpha":1.0},
+            "type": "mesh",
+            "model" : "./models/apple.obj",
+            "texture" : null,
+            "parent" : null,
+            "position": [0.0, 0.0, 1.0]
+        },
+        {
+            "name" : "alien",
+            "material" : {"diffuse" : [0.2, 0.2, 0.2], "ambient": [0.1, 0.1, 0.1], "specular": [0.8, 0.8, 0.8], "n":10, "alpha":1.0},
+            "type": "mesh",
+            "model" : "./models/alien.obj",
+            "texture" : null,
+            "parent" : null,
+            "position": [1.0, 0.0, 1.0]
+        },
+        {
+            "name" : "cube",
+            "material" : {"diffuse" : [0.2, 0.2, 0.2], "ambient": [0.1, 0.1, 0.1], "specular": [0.8, 0.8, 0.8], "n":10, "alpha":1.0},
+            "type": "cube",
+            "texture": "./materials/plywood.jpg",
+            "parent" : null,
+            "position": [2.0, 0.0, 0.0]
+        }
+    ],
+    "lights" : [
+        {
+            "name": "light0",
+            "position" : [-0.6, 0.0, -1.0],
+            "colour" : [1.0, 1.0, 1.0],
+            "strength" : 0.25
+        },
+        {
+            "name": "light1",
+            "position" : [0.6, 0.0, -1.0],
+            "colour" : [1.0, 1.0, 1.0],
+            "strength" : 0.25
+        }
+    ]
+}
