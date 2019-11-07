@@ -3,19 +3,17 @@
     "objects" : [
         {
             "name" : "apple",
-            "material" : {"diffuse" : [0.2, 0.2, 0.2], "ambient": [0.1, 0.1, 0.1], "specular": [0.8, 0.8, 0.8], "n":10, "alpha":1.0},
+            "material" : {"diffuse" : [0.8, 0.2, 0.2], "ambient": [0.1, 0.1, 0.1], "specular": [0.8, 0.8, 0.8], "n":50, "alpha":1.0},
             "type": "mesh",
             "model" : "./models/apple.obj",
-            "texture" : null,
             "parent" : null,
             "position": [0.0, 0.0, 1.0]
         },
         {
             "name" : "alien",
-            "material" : {"diffuse" : [0.2, 0.2, 0.2], "ambient": [0.1, 0.1, 0.1], "specular": [0.8, 0.8, 0.8], "n":10, "alpha":1.0},
+            "material" : {"diffuse" : [0.2, 0.2, 0.2], "ambient": [0.1, 0.1, 0.1], "specular": [0.8, 0.8, 0.8], "n":12, "alpha":1.0},
             "type": "mesh",
             "model" : "./models/alien.obj",
-            "texture" : null,
             "parent" : null,
             "position": [1.0, 0.0, 1.0]
         },

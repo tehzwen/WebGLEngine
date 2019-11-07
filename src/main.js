@@ -116,16 +116,18 @@ function main() {
             vec3 ambient;
             vec3 diffuse;
             vec3 specular;
+            float lightDistance;
 
             for (int i = 0; i < numLights + 1; i++) {
                 vec3 lightDirection = normalize(uLightPositions[i] - oFragPosition);
+                lightDistance = distance(uLightPositions[i], oFragPosition);
 
                 //ambient
                 ambient += (ambientVal * uLightColours[i]) * uLightStrengths[i];
 
                 //diffuse
                 float NdotL = max(dot(normal, lightDirection), 1.0);
-                diffuse += (diffuseVal * uLightColours[i]) * NdotL * uLightStrengths[i];
+                diffuse += ((diffuseVal * uLightColours[i]) * NdotL * uLightStrengths[i]) / lightDistance;
 
                 //specular
                 vec3 nCameraPosition = normalize(oCameraPosition); // Normalize the camera position
@@ -136,7 +138,7 @@ function main() {
                 {
                     float NDotH = max(dot(normal, H), 0.0);
                     float NHPow = pow(NDotH, nVal); // (N dot H)^n
-                    specular += (specularVal * uLightColours[i]) * NHPow;
+                    specular += ((specularVal * uLightColours[i]) * NHPow) / lightDistance;
                 }
             }
 
@@ -167,6 +169,8 @@ function main() {
         samplerExists: 0
     };
 
+    state.numLights = state.lights.length;
+
     //iterate through the level's objects and add them
     state.level.objects.map((object) => {
         if (object.type === "mesh") {
@@ -186,6 +190,7 @@ function main() {
         getMousePick(event, state);
     })
 
+    console.log(state);
     startRendering(gl, state);
 }
 
