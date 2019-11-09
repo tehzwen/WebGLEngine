@@ -13,12 +13,21 @@ window.onload = () => {
  * @purpose - Helper function called as a callback function when the mesh is done loading for the object
  */
 function createMesh(mesh, object) {
-    let testModel = new Model(state.gl, object.name, mesh, object.parent, object.material.ambient, object.material.diffuse, object.material.specular, object.material.n, object.material.alpha, object.texture);
-    testModel.vertShader = state.vertShaderSample;
-    testModel.fragShader = state.fragShaderSample;
-    testModel.setup();
-    testModel.model.position = object.position;
-    addObjectToScene(state, testModel);
+    if (object.type === "mesh") {
+        let testModel = new Model(state.gl, object.name, mesh, object.parent, object.material.ambient, object.material.diffuse, object.material.specular, object.material.n, object.material.alpha, object.texture);
+        testModel.vertShader = state.vertShaderSample;
+        testModel.fragShader = state.fragShaderSample;
+        testModel.setup();
+        testModel.model.position = object.position;
+        addObjectToScene(state, testModel);
+    } else {
+        let testLight = new Light(state.gl, object.name, mesh, object.parent, object.material.ambient, object.material.diffuse, object.material.specular, object.material.n, object.material.alpha, object.colour, object.strength);
+        testLight.vertShader = state.vertShaderSample;
+        testLight.fragShader = state.fragShaderSample;
+        testLight.setup();
+        testLight.model.position = object.position;
+        addObjectToScene(state, testLight);
+    }
 }
 
 /**
@@ -160,11 +169,18 @@ function main() {
         fragShaderSample,
         canvas: canvas,
         objectCount: 0,
+        objectTable: {},
+        lightIndices: [],
+        keyboard: {},
+        gameStarted : false,
         camera: {
             name: 'camera',
-            position: vec3.fromValues(0.5, 0.5, -2.5),
-            center: vec3.fromValues(0.5, 0.5, 0.0),
+            position: vec3.fromValues(0.5, 0.0, -2.5),
+            center: vec3.fromValues(0.5, 0.0, 0.0),
             up: vec3.fromValues(0.0, 1.0, 0.0),
+            pitch: 0,
+            yaw: 0,
+            roll: 0
         },
         samplerExists: 0
     };
@@ -173,7 +189,7 @@ function main() {
 
     //iterate through the level's objects and add them
     state.level.objects.map((object) => {
-        if (object.type === "mesh") {
+        if (object.type === "mesh" || object.type === "light") {
             parseOBJFileToJSON(object.model, createMesh, object);
         } else if (object.type === "cube") {
             let tempCube = new Cube(gl, object.name, object.parent, object.material.ambient, object.material.diffuse, object.material.specular, object.material.n, object.material.alpha, object.texture, object.position);
@@ -186,11 +202,10 @@ function main() {
     })
 
     //setup mouse click listener
+    /*
     canvas.addEventListener('click', (event) => {
         getMousePick(event, state);
-    })
-
-    console.log(state);
+    }) */
     startRendering(gl, state);
 }
 
@@ -201,8 +216,15 @@ function main() {
  * @purpose - Helper function for adding a new object to the scene and refreshing the GUI
  */
 function addObjectToScene(state, object) {
-    object.name = object.name + state.objectCount;
+    //console.log(object);
+    if (object.type === "light") {
+        state.lightIndices.push(state.objectCount);
+        state.numLights++;
+    }
+
+    object.name = object.name;
     state.objects.push(object);
+    state.objectTable[object.name] = state.objectCount;
     state.objectCount++;
     createSceneGui(state);
 }
@@ -224,14 +246,36 @@ function startRendering(gl, state) {
         const deltaTime = now - then;
         then = now;
 
-        state.objects.map((object) => {
-            //mat4.rotateX(object.model.rotation, object.model.rotation, 0.3 * deltaTime);
-            mat4.rotateY(object.model.rotation, object.model.rotation, 0.3 * deltaTime);
-            //mat4.rotateZ(object.model.rotation, object.model.rotation, 0.3 * deltaTime);
-        })
+        state.deltaTime = deltaTime;
 
-        // Draw our scene
-        drawScene(gl, deltaTime, state);
+        //wait until the scene is completely loaded to render it
+        if (state.numberOfObjectsToLoad <= state.objects.length) {
+
+            /*state.objects.map((object) => {
+                //mat4.rotateX(object.model.rotation, object.model.rotation, 0.3 * deltaTime);
+                //mat4.rotateY(object.model.rotation, object.model.rotation, 0.3 * deltaTime);
+                //mat4.rotateZ(object.model.rotation, object.model.rotation, 0.3 * deltaTime);
+            }) */
+            if (!state.gameStarted) {
+                startGame(state);
+                state.gameStarted = true;
+            }
+
+            if (state.keyboard["w"]) {
+                moveForward(state);
+            }
+            if (state.keyboard["s"]) {
+                moveBackward(state);
+            }
+            if (state.keyboard["a"]) {
+                moveLeft(state);
+            }
+            if (state.keyboard["d"]) {
+                moveRight(state);
+            }
+            // Draw our scene
+            drawScene(gl, deltaTime, state);
+        }
 
         stats.end();
         // Request another frame when this one is done
@@ -270,11 +314,10 @@ function drawScene(gl, deltaTime, state) {
 
                 mat4.perspective(projectionMatrix, fovy, aspect, near, far);
 
-
                 gl.uniformMatrix4fv(object.programInfo.uniformLocations.projection, false, projectionMatrix);
 
                 state.projectionMatrix = projectionMatrix;
-
+                
                 var viewMatrix = mat4.create();
                 mat4.lookAt(
                     viewMatrix,
@@ -315,18 +358,22 @@ function drawScene(gl, deltaTime, state) {
                 gl.uniform1i(object.programInfo.uniformLocations.numLights, state.numLights);
 
                 let lightPositionArray = [], lightColourArray = [], lightStrengthArray = [];
-                state.lights.map((light) => {
-                    //iterate through position and colors (since both vec3s)
-                    for (let i = 0; i < 3; i++) {
-                        lightPositionArray.push(light.position[i]);
-                        lightColourArray.push(light.colour[i]);
+
+                for (let i = 0; i < state.lightIndices.length; i++) {
+                    let light = state.objects[state.lightIndices[i]];
+                    for (let j = 0; j < 3; j++) {
+                        lightPositionArray.push(light.model.position[j]);
+                        lightColourArray.push(light.colour[j]);
                     }
                     lightStrengthArray.push(light.strength);
-                })
+                }
 
-                gl.uniform3fv(object.programInfo.uniformLocations.lightPositions, lightPositionArray);
-                gl.uniform3fv(object.programInfo.uniformLocations.lightColours, lightColourArray);
-                gl.uniform1fv(object.programInfo.uniformLocations.lightStrengths, lightStrengthArray);
+                //use this check to wait until the light meshes are loaded properly
+                if (lightColourArray.length > 0 && lightPositionArray.length > 0 && lightStrengthArray.length > 0) {
+                    gl.uniform3fv(object.programInfo.uniformLocations.lightPositions, lightPositionArray);
+                    gl.uniform3fv(object.programInfo.uniformLocations.lightColours, lightColourArray);
+                    gl.uniform1fv(object.programInfo.uniformLocations.lightStrengths, lightStrengthArray);
+                }
 
                 {
                     // Bind the buffer we want to draw
@@ -350,7 +397,7 @@ function drawScene(gl, deltaTime, state) {
                     const offset = 0; // Number of elements to skip before starting
 
                     //if its a mesh then we don't use an index buffer and use drawArrays instead of drawElements
-                    if (object.type === "mesh") {
+                    if (object.type === "mesh" || object.type === "light") {
                         gl.drawArrays(gl.TRIANGLES, offset, object.buffers.numVertices / 3);
                     } else {
                         gl.drawElements(gl.TRIANGLES, object.buffers.numVertices, gl.UNSIGNED_SHORT, offset);
@@ -358,5 +405,5 @@ function drawScene(gl, deltaTime, state) {
                 }
             }
         }
-    })
+    });
 }

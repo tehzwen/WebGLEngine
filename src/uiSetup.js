@@ -32,25 +32,6 @@ function createSceneGui(state) {
         sideNav.appendChild(objectElement);
     });
 
-    //get lights
-    state.lights.map((object) => {
-        let objectElement = document.createElement("div");
-        let objectName = document.createElement("h5");
-        objectName.classList = "object-link";
-        objectName.innerHTML = object.name;
-        objectName.addEventListener('click', () => {
-            let objectModel = {
-                model: { ...object },
-                name: object.name
-            }
-
-            displayObjectValues(objectModel);
-        });
-
-        objectElement.appendChild(objectName);
-        sideNav.appendChild(objectElement);
-    })
-
     let camera = state.camera;
     let objectElement = document.createElement("div");
     let objectName = document.createElement("h5");

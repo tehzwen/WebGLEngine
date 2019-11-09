@@ -19,24 +19,30 @@
         },
         {
             "name" : "cube",
-            "material" : {"diffuse" : [0.2, 0.2, 0.2], "ambient": [0.1, 0.1, 0.1], "specular": [0.8, 0.8, 0.8], "n":10, "alpha":1.0},
+            "material" : {"diffuse" : [0.2, 0.2, 0.2], "ambient": [0.1, 0.1, 0.1], "specular": [0.3, 0.3, 0.3], "n":10, "alpha":1.0},
             "type": "cube",
             "texture": "./materials/plywood.jpg",
             "parent" : null,
             "position": [2.0, 0.0, 0.0]
-        }
-    ],
-    "lights" : [
+        },
         {
             "name": "light0",
+            "type": "light",
+            "model" : "./models/lightbulb.obj",
             "position" : [-0.6, 0.0, -1.0],
+            "material" : {"diffuse" : [1.0, 1.0, 1.0], "ambient": [0.1, 0.1, 0.1], "specular": [0.3, 0.3, 0.3], "n":1000, "alpha":1.0},
             "colour" : [1.0, 1.0, 1.0],
+            "parent" : null,
             "strength" : 0.25
         },
         {
             "name": "light1",
+            "type": "light",
+            "model" : "./models/lightbulb.obj",
             "position" : [0.6, 0.0, -1.0],
+            "material" : {"diffuse" : [1.0, 1.0, 1.0], "ambient": [0.1, 0.1, 0.1], "specular": [0.3, 0.3, 0.3], "n":1, "alpha":1.0},
             "colour" : [1.0, 1.0, 1.0],
+            "parent" : null,
             "strength" : 0.25
         }
     ]

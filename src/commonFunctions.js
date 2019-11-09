@@ -329,14 +329,7 @@ function parseSceneFile(file, state, cb) {
         })
         .then((jData) => {
             state.level = jData;
-            jData.lights.map((light) => {
-                state.lights.push({
-                    name: light.name,
-                    position: vec3.fromValues(light.position[0], light.position[2], light.position[2]),
-                    colour: vec3.fromValues(light.colour[0], light.colour[2], light.colour[2]),
-                    strength: light.strength
-                })
-            })
+            state.numberOfObjectsToLoad = jData.objects.length;
 
             cb();
         })
