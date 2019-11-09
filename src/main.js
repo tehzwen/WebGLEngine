@@ -122,25 +122,26 @@ function main() {
 
         void main() {
             vec3 normal = normalize(normalInterp);
-            vec3 ambient;
-            vec3 diffuse;
-            vec3 specular;
+            vec3 ambient = vec3(0,0,0);
+            vec3 diffuse = vec3(0,0,0);
+            vec3 specular = vec3(0,0,0);
+            vec3 lightDirection;
             float lightDistance;
 
-            for (int i = 0; i < numLights + 1; i++) {
-                vec3 lightDirection = normalize(uLightPositions[i] - oFragPosition);
+            for (int i = 0; i < numLights; i++) {
+                lightDirection = normalize(uLightPositions[i] - oFragPosition);
                 lightDistance = distance(uLightPositions[i], oFragPosition);
 
                 //ambient
                 ambient += (ambientVal * uLightColours[i]) * uLightStrengths[i];
 
                 //diffuse
-                float NdotL = max(dot(normal, lightDirection), 1.0);
+                float NdotL = max(dot(lightDirection, normal), 0.0);
                 diffuse += ((diffuseVal * uLightColours[i]) * NdotL * uLightStrengths[i]) / lightDistance;
 
                 //specular
                 vec3 nCameraPosition = normalize(oCameraPosition); // Normalize the camera position
-                vec3 V = nCameraPosition - oFragPosition;
+                vec3 V = normalize(nCameraPosition - oFragPosition);
                 vec3 H = normalize(V + lightDirection); // H = V + L normalized
 
                 if (NdotL > 0.0f)
@@ -172,7 +173,8 @@ function main() {
         objectTable: {},
         lightIndices: [],
         keyboard: {},
-        gameStarted : false,
+        mouse: { sensitivity: 0.2 },
+        gameStarted: false,
         camera: {
             name: 'camera',
             position: vec3.fromValues(0.5, 0.0, -2.5),
@@ -198,6 +200,16 @@ function main() {
             tempCube.setup();
             tempCube.model.position = vec3.fromValues(object.position[0], object.position[1], object.position[2]);
             addObjectToScene(state, tempCube);
+        } else if (object.type === "plane") {
+            let tempPlane = new Plane(gl, object.name, object.parent, object.material.ambient, object.material.diffuse, object.material.specular, object.material.n, object.material.alpha, object.texture, object.position);
+            tempPlane.vertShader = vertShaderSample;
+            tempPlane.fragShader = fragShaderSample;
+            tempPlane.setup();
+            tempPlane.model.position = vec3.fromValues(object.position[0], object.position[1], object.position[2]);
+            if (object.scale) {
+                tempPlane.scale(object.scale);
+            }
+            addObjectToScene(state, tempPlane);
         }
     })
 
@@ -250,12 +262,6 @@ function startRendering(gl, state) {
 
         //wait until the scene is completely loaded to render it
         if (state.numberOfObjectsToLoad <= state.objects.length) {
-
-            /*state.objects.map((object) => {
-                //mat4.rotateX(object.model.rotation, object.model.rotation, 0.3 * deltaTime);
-                //mat4.rotateY(object.model.rotation, object.model.rotation, 0.3 * deltaTime);
-                //mat4.rotateZ(object.model.rotation, object.model.rotation, 0.3 * deltaTime);
-            }) */
             if (!state.gameStarted) {
                 startGame(state);
                 state.gameStarted = true;
@@ -273,10 +279,14 @@ function startRendering(gl, state) {
             if (state.keyboard["d"]) {
                 moveRight(state);
             }
+
+            if (state.mouse['camMove']) {
+                //vec3.rotateY(state.camera.center, state.camera.center, state.camera.position, (state.camera.yaw - 0.25) * deltaTime * state.mouse.sensitivity);
+                vec3.rotateY(state.camera.center, state.camera.center, state.camera.position, (-state.mouse.rateX * deltaTime * state.mouse.sensitivity));
+            }
             // Draw our scene
             drawScene(gl, deltaTime, state);
         }
-
         stats.end();
         // Request another frame when this one is done
         requestAnimationFrame(render);
@@ -300,6 +310,17 @@ function drawScene(gl, deltaTime, state) {
     gl.clearDepth(1.0); // Clear everything
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
+    let lightPositionArray = [], lightColourArray = [], lightStrengthArray = [];
+
+    for (let i = 0; i < state.lightIndices.length; i++) {
+        let light = state.objects[state.lightIndices[i]];
+        for (let j = 0; j < 3; j++) {
+            lightPositionArray.push(light.model.position[j]);
+            lightColourArray.push(light.colour[j]);
+        }
+        lightStrengthArray.push(light.strength);
+    }
+
     state.objects.map((object) => {
         if (object.loaded) {
 
@@ -317,7 +338,7 @@ function drawScene(gl, deltaTime, state) {
                 gl.uniformMatrix4fv(object.programInfo.uniformLocations.projection, false, projectionMatrix);
 
                 state.projectionMatrix = projectionMatrix;
-                
+
                 var viewMatrix = mat4.create();
                 mat4.lookAt(
                     viewMatrix,
@@ -357,16 +378,7 @@ function drawScene(gl, deltaTime, state) {
 
                 gl.uniform1i(object.programInfo.uniformLocations.numLights, state.numLights);
 
-                let lightPositionArray = [], lightColourArray = [], lightStrengthArray = [];
 
-                for (let i = 0; i < state.lightIndices.length; i++) {
-                    let light = state.objects[state.lightIndices[i]];
-                    for (let j = 0; j < 3; j++) {
-                        lightPositionArray.push(light.model.position[j]);
-                        lightColourArray.push(light.colour[j]);
-                    }
-                    lightStrengthArray.push(light.strength);
-                }
 
                 //use this check to wait until the light meshes are loaded properly
                 if (lightColourArray.length > 0 && lightPositionArray.length > 0 && lightStrengthArray.length > 0) {

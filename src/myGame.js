@@ -1,10 +1,6 @@
 var moveSpeed = 2;
-var cameraSensitivity = 5;
 
 function startGame(state) {
-    let inverseView = mat4.create(), forwardVector = vec3.fromValues(0, 0, 0), sidewaysVector = vec3.fromValues(0, 0, 0), cameraCenterVector = vec3.fromValues(0, 0, 0), cameraPositionVector = vec3.fromValues(0, 0, 0);
-
-
     document.addEventListener("contextmenu", function (e) {
         e.preventDefault();
     }, false);
@@ -12,12 +8,14 @@ function startGame(state) {
     document.addEventListener('mousemove', (event) => {
         //handle right click
         if (event.buttons == 2) {
-            if (event.movementX > 0) {
-                vec3.rotateY(state.camera.center, state.camera.center, state.camera.position, (state.camera.yaw - 0.25) * state.deltaTime * cameraSensitivity);
-            } else if (event.movementX < 0) {
-                vec3.rotateY(state.camera.center, state.camera.center, state.camera.position, (state.camera.yaw + 0.25) * state.deltaTime * cameraSensitivity);
-            }
+            state.mouse['camMove'] = true;
+            state.mouse.rateX = event.movementX;
         }
+    });
+
+    document.addEventListener('mouseup', (event) => {
+        state.mouse['camMove'] = false;
+        state.mouse.rateX = 0;
     })
 
     document.addEventListener('keypress', (event) => {
@@ -59,6 +57,20 @@ function startGame(state) {
 
             case "KeyD":
                 state.keyboard[event.key] = false;
+                break;
+
+            case "KeyZ":
+                state.lightIndices.map((index) => {
+                    let light = state.objects[index];
+                    light.strength += 0.5;
+                })
+                break;
+
+            case "KeyX":
+                state.lightIndices.map((index) => {
+                    let light = state.objects[index];
+                    light.strength -= 0.5;
+                })
                 break;
 
             default:
