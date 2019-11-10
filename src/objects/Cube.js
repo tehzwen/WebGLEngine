@@ -1,5 +1,5 @@
 class Cube {
-    constructor(glContext, name, parent = null, ambient, diffuse, specular, n, alpha, texture) {
+    constructor(glContext, name, parent = null, ambient, diffuse, specular, n, alpha, texture, textureNorm) {
         this.state = {};
         this.gl = glContext;
         this.name = name;
@@ -7,7 +7,7 @@ class Cube {
         this.type = "primitive";
         this.loaded = false;
 
-        this.material = { ambient, diffuse, specular, n, alpha, textureID: texture };
+        this.material = { ambient, diffuse, specular, n, alpha };
         this.model = {
             vertices: [
                 [0.0, 0.0, 0.0],
@@ -110,7 +110,39 @@ class Cube {
                 -1.0, 0.0, 0.0,
                 -1.0, 0.0, 0.0
             ],
-            texture: texture ? getTextures(glContext, this) : null,
+            bitangents: [
+                0, -1, 0,
+                0, -1, 0,
+                0, -1, 0,
+                0, -1, 0, // Front
+
+                0, -1, 0,
+                0, -1, 0,
+                0, -1, 0,
+                0, -1, 0, // Back
+
+                0, -1, 0,
+                0, -1, 0,
+                0, -1, 0,
+                0, -1, 0, // Right
+
+                0, -1, 0,
+                0, -1, 0,
+                0, -1, 0,
+                0, -1, 0, // Left
+
+                0, 0, 1,
+                0, 0, 1,
+                0, 0, 1,
+                0, 0, 1, // Top
+
+                0, 0, -1,
+                0, 0, -1,
+                0, 0, -1,
+                0, 0, -1, // Bot
+            ],
+            texture: texture ? getTextures(glContext, texture) : null,
+            textureNorm: textureNorm ? getTextures(glContext, textureNorm) : null,
             buffers: null,
             modelMatrix: mat4.create(),
             position: vec3.fromValues(0.0, 0.0, 0.0),
@@ -123,7 +155,15 @@ class Cube {
     }
 
     scale(scaleVec) {
-        vec3.scale(this.model.scale, this.model.scale, scaleVec)
+        let xVal = this.model.scale[0];
+        let yVal = this.model.scale[1];
+        let zVal = this.model.scale[2];
+
+        xVal *= scaleVec[0];
+        yVal *= scaleVec[1];
+        zVal *= scaleVec[2];
+
+        this.model.scale = vec3.fromValues(xVal, yVal, zVal);
     }
 
     lightingShader() {
@@ -138,6 +178,7 @@ class Cube {
                 vertexPosition: this.gl.getAttribLocation(shaderProgram, 'aPosition'),
                 vertexNormal: this.gl.getAttribLocation(shaderProgram, 'aNormal'),
                 vertexUV: this.gl.getAttribLocation(shaderProgram, 'aUV'),
+                vertexBitangent: this.gl.getAttribLocation(shaderProgram, 'aVertBitang')
             },
             uniformLocations: {
                 projection: this.gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
@@ -154,7 +195,9 @@ class Cube {
                 lightColours: this.gl.getUniformLocation(shaderProgram, 'uLightColours'),
                 lightStrengths: this.gl.getUniformLocation(shaderProgram, 'uLightStrengths'),
                 samplerExists: this.gl.getUniformLocation(shaderProgram, "samplerExists"),
-                sampler: this.gl.getUniformLocation(shaderProgram, 'uTexture')
+                sampler: this.gl.getUniformLocation(shaderProgram, 'uTexture'),
+                normalSamplerExists: this.gl.getUniformLocation(shaderProgram, 'uTextureNormExists'),
+                normalSampler: this.gl.getUniformLocation(shaderProgram, 'uTextureNorm')
             },
         };
 
@@ -169,6 +212,7 @@ class Cube {
         const normals = new Float32Array(this.model.normals.flat());
         const indices = new Uint16Array(this.model.triangles);
         const textureCoords = new Float32Array(this.model.uvs);
+        const bitangents = new Float32Array(this.model.bitangents);
 
         var vertexArrayObject = this.gl.createVertexArray();
 
@@ -180,6 +224,7 @@ class Cube {
                 position: initPositionAttribute(this.gl, this.programInfo, positions),
                 normal: initNormalAttribute(this.gl, this.programInfo, normals),
                 uv: initTextureCoords(this.gl, this.programInfo, textureCoords),
+                bitangents: initBitangentBuffer(this.gl, this.programInfo, bitangents)
             },
             indicies: initIndexBuffer(this.gl, indices),
             numVertices: indices.length

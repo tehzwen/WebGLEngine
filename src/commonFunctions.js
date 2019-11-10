@@ -60,21 +60,6 @@ function loadShader(gl, type, source) {
 
 /**
  * 
- * @param {hex value of color} hex 
- */
-function hexToRGB(hex) {
-    let r = hex.substring(1, 3);
-    let g = hex.substring(3, 5);
-    let b = hex.substring(5, 7);
-
-    r = parseInt(r, 16);
-    g = parseInt(g, 16);
-    b = parseInt(b, 16);
-    return [r / 255, g / 255, b / 255];
-}
-
-/**
- * 
  * @param {array of x,y,z vertices} vertices 
  */
 function calculateCentroid(vertices, cb) {
@@ -82,7 +67,7 @@ function calculateCentroid(vertices, cb) {
     for (let t = 0; t < vertices.length; t += 3) {
         vec3.add(center, center, vec3.fromValues(vertices[t], vertices[t + 1], vertices[t + 2]));
     }
-    vec3.scale(center, center, 1 / (vertices.length/3));
+    vec3.scale(center, center, 1 / (vertices.length / 3));
 
     if (cb) {
         cb();
@@ -231,6 +216,54 @@ function initTextureCoords(gl, programInfo, textureCoords) {
     }
 }
 
+function initBitangentBuffer(gl, programInfo, bitangents) {
+    if (bitangents != null && bitangents.length > 0) {
+        // Create a buffer for the positions.
+        const bitangentBuffer = gl.createBuffer();
+
+        // Select the buffer as the one to apply buffer
+        // operations to from here out.
+        gl.bindBuffer(gl.ARRAY_BUFFER, bitangentBuffer);
+
+        // Now pass the list of positions into WebGL to build the
+        // shape. We do this by creating a Float32Array from the
+        // JavaScript array, then use it to fill the current buffer.
+        gl.bufferData(
+            gl.ARRAY_BUFFER, // The kind of buffer this is
+            bitangents, // The data in an Array object
+            gl.STATIC_DRAW // We are not going to change this data, so it is static
+        );
+
+        // Tell WebGL how to pull out the positions from the position
+        // buffer into the vertexPosition attribute.
+        {
+            const numComponents = 3;
+            const type = gl.FLOAT; // the data in the buffer is 32bit floats
+            const normalize = false; // don't normalize between 0 and 1
+            const stride = 0; // how many bytes to get from one set of values to the next
+            // Set stride to 0 to use type and numComponents above
+            const offset = 0; // how many bytes inside the buffer to start from
+
+            // Set the information WebGL needs to read the buffer properly
+            gl.vertexAttribPointer(
+                programInfo.attribLocations.vertexBitangent,
+                numComponents,
+                type,
+                normalize,
+                stride,
+                offset
+            );
+            // Tell WebGL to use this attribute
+            gl.enableVertexAttribArray(
+                programInfo.attribLocations.vertexBitangent);
+        }
+
+        // TODO: Create and populate a buffer for the UV coordinates
+
+        return bitangentBuffer;
+    }
+}
+
 function initIndexBuffer(gl, elementArray) {
 
     // Create a buffer for the positions.
@@ -265,16 +298,19 @@ function loadJSONFile(cb, filePath) {
         })
 }
 
-function getTextures(gl, object) {
-    if (object.material.textureID) {
+function getTextures(gl, imgPath) {
+    if (imgPath) {
         var texture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
+            new Uint8Array([255, 0, 0, 255])); // red
 
         const image = new Image();
 
         image.onload = function () {
             gl.bindTexture(gl.TEXTURE_2D, texture);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
             gl.texImage2D(
@@ -282,11 +318,9 @@ function getTextures(gl, object) {
                 gl.UNSIGNED_BYTE,
                 image
             );
-            gl.bindTexture(gl.TEXTURE_2D, null);
-            gl.activeTexture(gl.TEXTURE0);
         }
 
-        image.src = object.material.textureID;
+        image.src = imgPath;
         return texture;
     }
 }

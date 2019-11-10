@@ -1,5 +1,5 @@
 class Plane {
-    constructor(glContext, name, parent = null, ambient, diffuse, specular, n, alpha, texture) {
+    constructor(glContext, name, parent = null, ambient, diffuse, specular, n, alpha, texture, textureNorm) {
         this.state = {};
         this.gl = glContext;
         this.name = name;
@@ -20,9 +20,9 @@ class Plane {
             ],
             uvs: [
                 0.0, 0.0,
-                1.0, 0.0,
-                1.0, 1.0,
-                0.0, 1.0,
+                5.0, 0.0,
+                5.0, 5.0,
+                0.0, 5.0,
             ],
             normals: [
                 0.0, 1.0, 0.0,
@@ -30,7 +30,14 @@ class Plane {
                 0.0, 1.0, 0.0,
                 0.0, 1.0, 0.0,
             ],
-            texture: texture ? getTextures(glContext, this) : null,
+            bitangents: [
+                0, -1, 0,
+                0, -1, 0,
+                0, -1, 0,
+                0, -1, 0, // top
+            ],
+            texture: texture ? getTextures(glContext, texture) : null,
+            textureNorm: textureNorm ? getTextures(glContext, textureNorm) : null,
             buffers: null,
             modelMatrix: mat4.create(),
             position: vec3.fromValues(0.0, 0.0, 0.0),
@@ -43,14 +50,15 @@ class Plane {
     }
 
     scale(scaleVec) {
-        //vec3.scale(this.model.scale, this.model.scale, scaleVec)
         let xVal = this.model.scale[0];
+        let yVal = this.model.scale[1];
         let zVal = this.model.scale[2];
 
-        xVal *= scaleVec;
-        zVal *= scaleVec;
+        xVal *= scaleVec[0];
+        yVal *= scaleVec[1];
+        zVal *= scaleVec[2];
 
-        this.model.scale = vec3.fromValues(xVal, 1.0, zVal);
+        this.model.scale = vec3.fromValues(xVal, yVal, zVal);
     }
 
     lightingShader() {
@@ -65,6 +73,7 @@ class Plane {
                 vertexPosition: this.gl.getAttribLocation(shaderProgram, 'aPosition'),
                 vertexNormal: this.gl.getAttribLocation(shaderProgram, 'aNormal'),
                 vertexUV: this.gl.getAttribLocation(shaderProgram, 'aUV'),
+                vertexBitangent: this.gl.getAttribLocation(shaderProgram, 'aVertBitang')
             },
             uniformLocations: {
                 projection: this.gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
@@ -81,7 +90,9 @@ class Plane {
                 lightColours: this.gl.getUniformLocation(shaderProgram, 'uLightColours'),
                 lightStrengths: this.gl.getUniformLocation(shaderProgram, 'uLightStrengths'),
                 samplerExists: this.gl.getUniformLocation(shaderProgram, "samplerExists"),
-                sampler: this.gl.getUniformLocation(shaderProgram, 'uTexture')
+                sampler: this.gl.getUniformLocation(shaderProgram, 'uTexture'),
+                normalSamplerExists: this.gl.getUniformLocation(shaderProgram, 'uTextureNormExists'),
+                normalSampler: this.gl.getUniformLocation(shaderProgram, 'uTextureNorm')
             },
         };
 
@@ -96,6 +107,7 @@ class Plane {
         const normals = new Float32Array(this.model.normals.flat());
         const indices = new Uint16Array(this.model.triangles);
         const textureCoords = new Float32Array(this.model.uvs);
+        const bitangents = new Float32Array(this.model.bitangents);
 
         var vertexArrayObject = this.gl.createVertexArray();
 
@@ -107,6 +119,7 @@ class Plane {
                 position: initPositionAttribute(this.gl, this.programInfo, positions),
                 normal: initNormalAttribute(this.gl, this.programInfo, normals),
                 uv: initTextureCoords(this.gl, this.programInfo, textureCoords),
+                bitangents: initBitangentBuffer(this.gl, this.programInfo, bitangents)
             },
             indicies: initIndexBuffer(this.gl, indices),
             numVertices: indices.length

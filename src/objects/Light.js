@@ -23,7 +23,15 @@ class Light {
     }
 
     scale(scaleVec) {
-        vec3.scale(this.model.scale, this.model.scale, scaleVec)
+        let xVal = this.model.scale[0];
+        let yVal = this.model.scale[1];
+        let zVal = this.model.scale[2];
+
+        xVal *= scaleVec[0];
+        yVal *= scaleVec[1];
+        zVal *= scaleVec[2];
+
+        this.model.scale = vec3.fromValues(xVal, yVal, zVal);
     }
 
     setup() {

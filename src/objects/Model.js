@@ -6,7 +6,7 @@ class Model {
         this.type = "mesh";
         this.loaded = false;
 
-        this.material = { ambient, diffuse, specular, n, alpha, textureID: texture };
+        this.material = { ambient, diffuse, specular, n, alpha };
         this.model = {
             normals: meshDetails.normals,
             vertices: meshDetails.vertices,
@@ -14,7 +14,7 @@ class Model {
             position: vec3.fromValues(0.0, 0.0, 0.0),
             rotation: mat4.create(),
             scale: vec3.fromValues(1.0, 1.0, 1.0),
-            texture: texture ? getTextures(glContext, this) : null
+            texture: texture ? getTextures(glContext, texture) : null
         };
         this.modelMatrix = mat4.create();
 
@@ -22,7 +22,15 @@ class Model {
     }
 
     scale(scaleVec) {
-        vec3.scale(this.model.scale, this.model.scale, scaleVec)
+        let xVal = this.model.scale[0];
+        let yVal = this.model.scale[1];
+        let zVal = this.model.scale[2];
+
+        xVal *= scaleVec[0];
+        yVal *= scaleVec[1];
+        zVal *= scaleVec[2];
+
+        this.model.scale = vec3.fromValues(xVal, yVal, zVal);
     }
 
     setup() {

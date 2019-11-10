@@ -19,6 +19,9 @@ function createMesh(mesh, object) {
         testModel.fragShader = state.fragShaderSample;
         testModel.setup();
         testModel.model.position = object.position;
+        if (object.scale) {
+            testModel.scale(object.scale);
+        }
         addObjectToScene(state, testModel);
     } else {
         let testLight = new Light(state.gl, object.name, mesh, object.parent, object.material.ambient, object.material.diffuse, object.material.specular, object.material.n, object.material.alpha, object.colour, object.strength);
@@ -26,6 +29,10 @@ function createMesh(mesh, object) {
         testLight.fragShader = state.fragShaderSample;
         testLight.setup();
         testLight.model.position = object.position;
+        if (object.scale) {
+            testLight.scale(object.scale);
+        }
+
         addObjectToScene(state, testLight);
     }
 }
@@ -69,11 +76,11 @@ function main() {
         in vec3 aPosition;
         in vec3 aNormal;
         in vec2 aUV;
+        in vec3 aVertBitang;
 
         uniform mat4 uProjectionMatrix;
         uniform mat4 uViewMatrix;
         uniform mat4 uModelMatrix;
-        uniform vec3 uCameraPosition;
         uniform mat4 normalMatrix;
         
         out vec3 oFragPosition;
@@ -81,6 +88,7 @@ function main() {
         out vec3 oNormal;
         out vec3 normalInterp;
         out vec2 oUV;
+        out vec3 oVertBitang;
 
         void main() {
             // Postion of the fragment in world space
@@ -88,10 +96,10 @@ function main() {
             gl_Position = uProjectionMatrix * uViewMatrix * uModelMatrix * vec4(aPosition, 1.0);
 
             oFragPosition = (uModelMatrix * vec4(aPosition, 1.0)).xyz;
-            oCameraPosition = uCameraPosition;
             oNormal = normalize((uModelMatrix * vec4(aNormal, 1.0)).xyz);
             normalInterp = vec3(normalMatrix * vec4(aNormal, 0.0));
             oUV = aUV;
+            oVertBitang = aVertBitang;
         }
         `;
 
@@ -101,11 +109,12 @@ function main() {
         precision highp float;
 
         in vec3 oFragPosition;
-        in vec3 oCameraPosition;
         in vec3 oNormal;
         in vec3 normalInterp;
         in vec2 oUV;
+        in vec3 oVertBitang;
         
+        uniform vec3 uCameraPosition;
         uniform int numLights;
         uniform vec3 diffuseVal;
         uniform vec3 ambientVal;
@@ -114,6 +123,8 @@ function main() {
         uniform float alphaVal;
         uniform sampler2D uTexture;
         uniform int samplerExists;
+        uniform int uTextureNormExists;
+        uniform sampler2D uTextureNorm;
         uniform vec3 uLightPositions[MAX_LIGHTS];
         uniform vec3 uLightColours[MAX_LIGHTS];
         uniform float uLightStrengths[MAX_LIGHTS];
@@ -128,6 +139,15 @@ function main() {
             vec3 lightDirection;
             float lightDistance;
 
+            if (uTextureNormExists == 1) {
+                normal = texture(uTextureNorm, oUV).xyz;
+                normal = 2.0 * normal - 1.0;
+                normal = normal * vec3(5.0, 5.0, 5.0);
+                vec3 biTangent = cross(oNormal, oVertBitang);
+                mat3 nMatrix = mat3(oVertBitang, biTangent, oNormal);
+                normal = normalize(nMatrix * normal);
+            }
+
             for (int i = 0; i < numLights; i++) {
                 lightDirection = normalize(uLightPositions[i] - oFragPosition);
                 lightDistance = distance(uLightPositions[i], oFragPosition);
@@ -140,7 +160,7 @@ function main() {
                 diffuse += ((diffuseVal * uLightColours[i]) * NdotL * uLightStrengths[i]) / lightDistance;
 
                 //specular
-                vec3 nCameraPosition = normalize(oCameraPosition); // Normalize the camera position
+                vec3 nCameraPosition = normalize(uCameraPosition); // Normalize the camera position
                 vec3 V = normalize(nCameraPosition - oFragPosition);
                 vec3 H = normalize(V + lightDirection); // H = V + L normalized
 
@@ -184,7 +204,8 @@ function main() {
             yaw: 0,
             roll: 0
         },
-        samplerExists: 0
+        samplerExists: 0,
+        samplerNormExists: 0
     };
 
     state.numLights = state.lights.length;
@@ -194,17 +215,21 @@ function main() {
         if (object.type === "mesh" || object.type === "light") {
             parseOBJFileToJSON(object.model, createMesh, object);
         } else if (object.type === "cube") {
-            let tempCube = new Cube(gl, object.name, object.parent, object.material.ambient, object.material.diffuse, object.material.specular, object.material.n, object.material.alpha, object.texture, object.position);
+            let tempCube = new Cube(gl, object.name, object.parent, object.material.ambient, object.material.diffuse, object.material.specular, object.material.n, object.material.alpha, object.texture, object.textureNorm);
             tempCube.vertShader = vertShaderSample;
             tempCube.fragShader = fragShaderSample;
             tempCube.setup();
             tempCube.model.position = vec3.fromValues(object.position[0], object.position[1], object.position[2]);
+            if (object.scale) {
+                tempCube.scale(object.scale);
+            }
             addObjectToScene(state, tempCube);
         } else if (object.type === "plane") {
-            let tempPlane = new Plane(gl, object.name, object.parent, object.material.ambient, object.material.diffuse, object.material.specular, object.material.n, object.material.alpha, object.texture, object.position);
+            let tempPlane = new Plane(gl, object.name, object.parent, object.material.ambient, object.material.diffuse, object.material.specular, object.material.n, object.material.alpha, object.texture, object.textureNorm);
             tempPlane.vertShader = vertShaderSample;
             tempPlane.fragShader = fragShaderSample;
             tempPlane.setup();
+
             tempPlane.model.position = vec3.fromValues(object.position[0], object.position[1], object.position[2]);
             if (object.scale) {
                 tempPlane.scale(object.scale);
@@ -284,6 +309,14 @@ function startRendering(gl, state) {
                 //vec3.rotateY(state.camera.center, state.camera.center, state.camera.position, (state.camera.yaw - 0.25) * deltaTime * state.mouse.sensitivity);
                 vec3.rotateY(state.camera.center, state.camera.center, state.camera.position, (-state.mouse.rateX * deltaTime * state.mouse.sensitivity));
             }
+
+            let apple = getObject(state, "apple");
+            let alien = getObject(state, "alien");
+
+            apple.centroid = alien.model.position;
+            mat4.rotateY(apple.model.rotation, apple.model.rotation, 0.3 * deltaTime);
+
+
             // Draw our scene
             drawScene(gl, deltaTime, state);
         }
@@ -348,6 +381,8 @@ function drawScene(gl, deltaTime, state) {
                 );
                 gl.uniformMatrix4fv(object.programInfo.uniformLocations.view, false, viewMatrix);
 
+               gl.uniform3fv(object.programInfo.uniformLocations.cameraPosition, state.camera.position);
+
                 state.viewMatrix = viewMatrix;
 
                 var modelMatrix = mat4.create();
@@ -374,8 +409,6 @@ function drawScene(gl, deltaTime, state) {
                 gl.uniform3fv(object.programInfo.uniformLocations.specularVal, object.material.specular);
                 gl.uniform1f(object.programInfo.uniformLocations.nVal, object.material.n);
 
-                gl.uniform3fv(object.programInfo.uniformLocations.cameraPosition, state.camera.position);
-
                 gl.uniform1i(object.programInfo.uniformLocations.numLights, state.numLights);
 
 
@@ -391,18 +424,34 @@ function drawScene(gl, deltaTime, state) {
                     // Bind the buffer we want to draw
                     gl.bindVertexArray(object.buffers.vao);
 
-                    //check for textures and apply them if they exist
+                    //check for diffuse texture and apply it
                     if (object.model.texture != null) {
                         state.samplerExists = 1;
-                        gl.uniform1i(object.programInfo.uniformLocations.samplerExists, state.samplerExists);
-                        gl.uniform1i(object.programInfo.uniformLocations.sampler, object.model.texture);
-                        gl.bindTexture(gl.TEXTURE_2D, object.model.texture);
                         gl.activeTexture(gl.TEXTURE0);
+                        gl.uniform1i(object.programInfo.uniformLocations.samplerExists, state.samplerExists);
+                        gl.uniform1i(object.programInfo.uniformLocations.sampler, 0);
+                        gl.bindTexture(gl.TEXTURE_2D, object.model.texture);
+                        
                     } else {
+                        gl.activeTexture(gl.TEXTURE0);
                         state.samplerExists = 0;
                         gl.uniform1i(object.programInfo.uniformLocations.samplerExists, state.samplerExists);
                         gl.bindTexture(gl.TEXTURE_2D, null);
-                        gl.activeTexture(gl.TEXTURE0);
+                    }
+
+                    //check for normal texture and apply it
+                    if (object.model.textureNorm != null) {
+                        state.samplerNormExists = 1;
+                        gl.activeTexture(gl.TEXTURE1);
+                        gl.uniform1i(object.programInfo.uniformLocations.normalSamplerExists, state.samplerNormExists);
+                        gl.uniform1i(object.programInfo.uniformLocations.normalSampler, 1);
+                        gl.bindTexture(gl.TEXTURE_2D, object.model.textureNorm);
+                        //console.log("here")
+                    } else {
+                        gl.activeTexture(gl.TEXTURE1);
+                        state.samplerNormExists = 0;
+                        gl.uniform1i(object.programInfo.uniformLocations.normalSamplerExists, state.samplerNormExists);
+                        gl.bindTexture(gl.TEXTURE_2D, null);
                     }
 
                     // Draw the object

@@ -50,6 +50,7 @@ function createSceneGui(state) {
     objectElement.appendChild(objectName);
     sideNav.appendChild(objectElement);
 
+    /*
     let addNav = document.getElementById("addObjectsNav");
     addNav.innerHTML = "";
     let objectTypeSelect = document.createElement("select");
@@ -68,7 +69,7 @@ function createSceneGui(state) {
     });
 
     addNav.appendChild(objectTypeSelect);
-    addNav.appendChild(addNewButton);
+    addNav.appendChild(addNewButton); */
 
 }
 
