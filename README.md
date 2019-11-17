@@ -1,11 +1,12 @@
 # WebGLEngine
 Simple WebGL rendering engine used for simple playgrounding with webgl
 
+***This is a desktop version of the engine***
+
 To run:
 
-use ```python -m SimpleHTTPServer``` (old python), ```python -m http.server``` (new python) in the root directory of the folder
-
-navigate your web browser to http://localhost:8000/main.html
+run command ```npm i``` in the root of this project
+run command ```npm start``` to start the app
 
 ## Design
 ### <u>Objects</u>
