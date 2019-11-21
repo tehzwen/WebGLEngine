@@ -4,7 +4,7 @@ class Cube {
         this.gl = glContext;
         this.name = name;
         this.parent = parent;
-        this.type = "primitive";
+        this.type = "cube";
         this.loaded = false;
 
         this.material = { ambient, diffuse, specular, n, alpha };
@@ -163,7 +163,15 @@ class Cube {
         yVal *= scaleVec[1];
         zVal *= scaleVec[2];
 
+        //need to scale bounding box
+        this.boundingBox = scaleBoundingBox(this.boundingBox, scaleVec);
+
         this.model.scale = vec3.fromValues(xVal, yVal, zVal);
+    }
+
+    translate(translateVec) {
+        vec3.add(this.model.position, this.model.position, vec3.fromValues(translateVec[0], translateVec[1], translateVec[2]));
+        this.boundingBox = translateBoundingBox(this.boundingBox, translateVec);
     }
 
     lightingShader() {
@@ -236,6 +244,7 @@ class Cube {
     setup() {
         this.lightingShader();
         this.centroid = calculateCentroid(this.model.vertices.flat());
+        this.boundingBox = getBoundingBox(this.model.vertices);
         this.initBuffers();
     }
 }

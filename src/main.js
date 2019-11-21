@@ -219,10 +219,10 @@ function main() {
             tempCube.vertShader = vertShaderSample;
             tempCube.fragShader = fragShaderSample;
             tempCube.setup();
-            tempCube.model.position = vec3.fromValues(object.position[0], object.position[1], object.position[2]);
             if (object.scale) {
                 tempCube.scale(object.scale);
             }
+            tempCube.translate(object.position);
             addObjectToScene(state, tempCube);
         } else if (object.type === "plane") {
             let tempPlane = new Plane(gl, object.name, object.parent, object.material.ambient, object.material.diffuse, object.material.specular, object.material.n, object.material.alpha, object.texture, object.textureNorm);
@@ -436,7 +436,6 @@ function drawScene(gl, deltaTime, state) {
                         gl.activeTexture(gl.TEXTURE0);
                         state.samplerExists = 0;
                         gl.uniform1i(object.programInfo.uniformLocations.samplerExists, state.samplerExists);
-                        gl.bindTexture(gl.TEXTURE_2D, null);
                     }
 
                     //check for normal texture and apply it
@@ -451,7 +450,6 @@ function drawScene(gl, deltaTime, state) {
                         gl.activeTexture(gl.TEXTURE1);
                         state.samplerNormExists = 0;
                         gl.uniform1i(object.programInfo.uniformLocations.normalSamplerExists, state.samplerNormExists);
-                        gl.bindTexture(gl.TEXTURE_2D, null);
                     }
 
                     // Draw the object

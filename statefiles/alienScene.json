@@ -30,6 +30,14 @@
             "scale": [1.0, 4.0, 10.0]
         },
         {
+            "name" : "testCube0",
+            "material" : {"diffuse" : [0.2, 0.2, 0.2], "ambient": [0.1, 0.1, 0.1], "specular": [0.8, 0.8, 0.8], "n":10, "alpha":1.0},
+            "type": "cube",
+            "parent" : null,
+            "position": [1.0, -1.0, -2],
+            "scale": [1.0, 1.0, 1.0]
+        },
+        {
             "name" : "wall1",
             "material" : {"diffuse" : [0.2, 0.2, 0.2], "ambient": [0.1, 0.1, 0.1], "specular": [0.8, 0.8, 0.8], "n":10, "alpha":1.0},
             "type": "cube",
